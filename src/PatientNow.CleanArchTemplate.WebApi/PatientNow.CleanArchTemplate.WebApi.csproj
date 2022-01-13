@@ -1,0 +1,35 @@
+﻿<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <PropertyGroup>
+    <TargetFramework>net6.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <UserSecretsId>8ec223cc-d6e5-4f83-a4b9-f4b25525a448</UserSecretsId>
+    <DockerDefaultTargetOS>Linux</DockerDefaultTargetOS>
+    <DockerfileContext>..\..</DockerfileContext>
+    <DockerComposeProjectPath>..\..\docker-compose.dcproj</DockerComposeProjectPath>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Remove="Controllers\PatientMedicalConditionController.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
+	<PackageReference Include="AspNetCore.HealthChecks.SqlServer" Version="6.0.1" />
+	<PackageReference Include="FluentValidation.AspNetCore" Version="8.6.3" />
+	<PackageReference Include="Microsoft.AspNetCore.Authentication" Version="2.2.0" />
+    <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="6.0.1" />
+    <PackageReference Include="Microsoft.VisualStudio.Azure.Containers.Tools.Targets" Version="1.14.0" />
+    <PackageReference Include="Swashbuckle.AspNetCore" Version="6.2.3" />
+  </ItemGroup>
+
+  <ItemGroup>
+	  <ProjectReference Include="..\PatientNow.CleanArchTemplate.Authentication\PatientNow.CleanArchTemplate.Authentication.csproj" />
+	  <ProjectReference Include="..\PatientNow.CleanArchTemplate.Infrastructure\PatientNow.CleanArchTemplate.Infrastructure.csproj" />
+  </ItemGroup>
+
+	<ItemGroup>
+		<InternalsVisibleTo Include="PatientNow.MyPatientNow.Tests.Integration" />
+	</ItemGroup>
+
+</Project>

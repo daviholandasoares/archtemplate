@@ -1,0 +1,23 @@
+FROM mcr.microsoft.com/dotnet/core/sdk:3.1-buster AS build
+WORKDIR /src
+COPY ["PatientNow.MyPatientNow.sln", "./"]
+COPY ["PatientNow.MyPatientNow/*.csproj", "./PatientNow.MyPatientNow/"]
+COPY ["PatientNow.MyPatientNow.Database/*.csproj", "./PatientNow.MyPatientNow.Database/"]
+COPY ["PatientNow.MyPatientNow.Lambdas/*.csproj", "./PatientNow.MyPatientNow.Lambdas/"]
+COPY ["PatientNow.MyPatientNow.Models/*.csproj", "./PatientNow.MyPatientNow.Models/"]
+COPY ["PatientNow.MyPatientNow.Options/*.csproj", "./PatientNow.MyPatientNow.Options/"]
+COPY ["PatientNow.MyPatientNow.PatientNow/*.csproj", "./PatientNow.MyPatientNow.PatientNow/"]
+COPY ["PatientNow.MyPatientNow.Queues/*.csproj", "./PatientNow.MyPatientNow.Queues/"]
+COPY ["PatientNow.MyPatientNow.Services/*.csproj", "./PatientNow.MyPatientNow.Services/"]
+COPY ["PatientNow.MyPatientNow.Tables/*.csproj", "./PatientNow.MyPatientNow.Tables/"]
+COPY ["PatientNow.MyPatientNow.Validators/*.csproj", "./PatientNow.MyPatientNow.Validators/"]
+COPY ["PatientNow.MyPatientNow.Tests/*.csproj", "./PatientNow.MyPatientNow.Tests/"]
+
+RUN dotnet restore
+COPY . .
+WORKDIR "/src/PatientNow.MyPatientNow.Lambdas"
+RUN dotnet publish "/src/PatientNow.MyPatientNow.Lambdas" --output "/PatientNow.MyPatientNow.Lambdas/bin/Release/lambda-publish" --configuration "Release" /p:GenerateRuntimeConfigurationFiles=true --runtime linux-x64 --self-contained false
+
+FROM public.ecr.aws/lambda/dotnet:core3.1
+WORKDIR /var/task
+COPY --from=build "PatientNow.MyPatientNow.Lambdas/bin/Release/lambda-publish"  .

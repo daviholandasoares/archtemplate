@@ -1,0 +1,865 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: PatientNow Service
+
+Parameters:
+  Service:
+    Description: The service
+    Type: String
+    Default: patientnow
+  Environment:
+    Description: The environment (dev|test|staging|prod)
+    Type: String
+    Default: dev
+    AllowedValues:
+      - dev
+      - test
+      - staging
+      - prod
+  ImageTag:
+    Description: The image tag to deploy
+    Type: String
+
+Mappings:
+  Default:
+    dev:
+      Role: role-dev
+      Userpool: pool-dev
+    test:
+      Role: role-test
+      Userpool: pool-test
+    staging:
+      Role: role-staging
+      Userpool: pool-staging
+    prod:
+      Role: role-prod
+      Userpool: pool-prod
+  SubnetConfig:
+    CIDR:
+      VPC: '10.0.0.0/16'
+      PublicSubnet1: '10.0.0.0/20'
+      PublicSubnet2: '10.0.16.0/20'
+      PublicSubnet3: '10.0.32.0/20'
+      PrivateSubnet1: '10.0.48.0/20'
+      PrivateSubnet2: '10.0.64.0/20'
+      PrivateSubnet3: '10.0.80.0/20'
+
+Resources:
+
+  # VPC in which resources will be networked.
+  # It has 3 public subnets, and 3 private subnets.
+  # We distribute the subnets across the first 3 available subnets
+  # for the region, for high availability.
+  VPC:
+    Type: AWS::EC2::VPC
+    Properties:
+      EnableDnsSupport: true
+      EnableDnsHostnames: true
+      CidrBlock: !FindInMap ['SubnetConfig', 'CIDR', 'VPC']
+      Tags:
+        - Key: Name
+          Value: 
+            !Sub "${Service}-${Environment}"
+        - Key: Service
+          Value: !Ref Service
+        - Key: Environment
+          Value: !Ref Environment
+
+  # Public subnets, where resources can have public IP addresses
+  PublicSubnet1:
+    Type: AWS::EC2::Subnet
+    Properties:
+      AvailabilityZone:
+         Fn::Select:
+         - 0
+         - Fn::GetAZs: {Ref: 'AWS::Region'}
+      VpcId: !Ref 'VPC'
+      CidrBlock: !FindInMap ['SubnetConfig', 'CIDR', 'PublicSubnet1']
+      MapPublicIpOnLaunch: true
+      Tags:
+        - Key: Name
+          Value: 
+            !Sub "${Service}-${Environment}-public"
+        - Key: Service
+          Value: !Ref Service
+        - Key: Environment
+          Value: !Ref Environment
+
+  PublicSubnet2:
+    Type: AWS::EC2::Subnet
+    Properties:
+      AvailabilityZone:
+         Fn::Select:
+         - 1
+         - Fn::GetAZs: {Ref: 'AWS::Region'}
+      VpcId: !Ref 'VPC'
+      CidrBlock: !FindInMap ['SubnetConfig', 'CIDR', 'PublicSubnet2']
+      MapPublicIpOnLaunch: true
+      Tags:
+        - Key: Name
+          Value: 
+            !Sub "${Service}-${Environment}-public"
+        - Key: Service
+          Value: !Ref Service
+        - Key: Environment
+          Value: !Ref Environment
+
+  PublicSubnet3:
+    Type: AWS::EC2::Subnet
+    Properties:
+      AvailabilityZone:
+         Fn::Select:
+         - 2
+         - Fn::GetAZs: {Ref: 'AWS::Region'}
+      VpcId: !Ref 'VPC'
+      CidrBlock: !FindInMap ['SubnetConfig', 'CIDR', 'PublicSubnet3']
+      MapPublicIpOnLaunch: true
+      Tags:
+        - Key: Name
+          Value: 
+            !Sub "${Service}-${Environment}-public"
+        - Key: Service
+          Value: !Ref Service
+        - Key: Environment
+          Value: !Ref Environment
+
+  # Private subnets where resources will only have private
+  # IP addresses, and will only be reachable by other members of the
+  # VPC
+  PrivateSubnet1:
+    Type: AWS::EC2::Subnet
+    Properties:
+      AvailabilityZone:
+         Fn::Select:
+         - 0
+         - Fn::GetAZs: {Ref: 'AWS::Region'}
+      VpcId: !Ref 'VPC'
+      CidrBlock: !FindInMap ['SubnetConfig', 'CIDR', 'PrivateSubnet1']
+      Tags:
+        - Key: Name
+          Value: 
+            !Sub "${Service}-${Environment}-private"
+        - Key: Service
+          Value: !Ref Service
+        - Key: Environment
+          Value: !Ref Environment
+  PrivateSubnet2:
+    Type: AWS::EC2::Subnet
+    Properties:
+      AvailabilityZone:
+         Fn::Select:
+         - 1
+         - Fn::GetAZs: {Ref: 'AWS::Region'}
+      VpcId: !Ref 'VPC'
+      CidrBlock: !FindInMap ['SubnetConfig', 'CIDR', 'PrivateSubnet2']
+      Tags:
+        - Key: Name
+          Value: 
+            !Sub "${Service}-${Environment}-private"
+        - Key: Service
+          Value: !Ref Service
+        - Key: Environment
+          Value: !Ref Environment
+  PrivateSubnet3:
+    Type: AWS::EC2::Subnet
+    Properties:
+      AvailabilityZone:
+         Fn::Select:
+         - 2
+         - Fn::GetAZs: {Ref: 'AWS::Region'}
+      VpcId: !Ref 'VPC'
+      CidrBlock: !FindInMap ['SubnetConfig', 'CIDR', 'PrivateSubnet3']
+      Tags:
+        - Key: Name
+          Value: 
+            !Sub "${Service}-${Environment}-private"
+        - Key: Service
+          Value: !Ref Service
+        - Key: Environment
+          Value: !Ref Environment
+
+  # Setup networking resources for the public subnets. Resources
+  # in the public subnets have public IP addresses and the routing table
+  # sends network traffic via the internet gateway.
+  InternetGateway:
+    Type: AWS::EC2::InternetGateway
+    Properties:
+      Tags:
+        - Key: Name
+          Value: 
+            !Sub "${Service}-${Environment}"
+        - Key: Service
+          Value: !Ref Service
+        - Key: Environment
+          Value: !Ref Environment
+  GatewayAttachement:
+    Type: AWS::EC2::VPCGatewayAttachment
+    Properties:
+      VpcId: !Ref 'VPC'
+      InternetGatewayId: !Ref 'InternetGateway'
+  PublicRouteTable:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref 'VPC'
+      Tags:
+        - Key: Name
+          Value: 
+            !Sub "${Service}-${Environment}-public"
+        - Key: Service
+          Value: !Ref Service
+        - Key: Environment
+          Value: !Ref Environment
+  PublicRoute:
+    Type: AWS::EC2::Route
+    DependsOn: GatewayAttachement
+    Properties:
+      RouteTableId: !Ref 'PublicRouteTable'
+      DestinationCidrBlock: '0.0.0.0/0'
+      GatewayId: !Ref 'InternetGateway'
+  PublicSubnet1RouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref PublicSubnet1
+      RouteTableId: !Ref PublicRouteTable
+  PublicSubnet2RouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref PublicSubnet2
+      RouteTableId: !Ref PublicRouteTable
+  PublicSubnet3RouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref PublicSubnet3
+      RouteTableId: !Ref PublicRouteTable
+
+  # Setup networking resources for the private subnets. Resources
+  # in these subnets have only private IP addresses, and must use a NAT
+  # gateway to talk to the internet. We launch a NAT gateway foreach private subnet.
+  NatGatewayAttachment:
+    Type: AWS::EC2::EIP
+    DependsOn: GatewayAttachement
+    Properties:
+      Domain: vpc
+      Tags:
+        - Key: Name
+          Value: 
+            !Sub "${Service}-${Environment}"
+        - Key: Service
+          Value: !Ref Service
+        - Key: Environment
+          Value: !Ref Environment
+  NatGateway:
+    Type: AWS::EC2::NatGateway
+    Properties:
+      AllocationId: !GetAtt NatGatewayAttachment.AllocationId
+      SubnetId: !Ref PublicSubnet1
+      Tags:
+        - Key: Name
+          Value: 
+            !Sub "${Service}-${Environment}"
+        - Key: Service
+          Value: !Ref Service
+        - Key: Environment
+          Value: !Ref Environment
+
+  PrivateRouteTable1:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref 'VPC'
+      Tags:
+        - Key: Name
+          Value: 
+            !Sub "${Service}-${Environment}-private"
+        - Key: Service
+          Value: !Ref Service
+        - Key: Environment
+          Value: !Ref Environment
+  PrivateRoute1:
+    Type: AWS::EC2::Route
+    Properties:
+      RouteTableId: !Ref PrivateRouteTable1
+      DestinationCidrBlock: 0.0.0.0/0
+      NatGatewayId: !Ref NatGateway
+  PrivateRouteTable1Association:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      RouteTableId: !Ref PrivateRouteTable1
+      SubnetId: !Ref PrivateSubnet1
+  PrivateRouteTable2:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref 'VPC'
+  PrivateRoute2:
+    Type: AWS::EC2::Route
+    Properties:
+      RouteTableId: !Ref PrivateRouteTable2
+      DestinationCidrBlock: 0.0.0.0/0
+      NatGatewayId: !Ref NatGateway
+  PrivateRouteTable2Association:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      RouteTableId: !Ref PrivateRouteTable2
+      SubnetId: !Ref PrivateSubnet2
+  PrivateRouteTable3:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref 'VPC'
+  PrivateRoute3:
+    Type: AWS::EC2::Route
+    Properties:
+      RouteTableId: !Ref PrivateRouteTable3
+      DestinationCidrBlock: 0.0.0.0/0
+      NatGatewayId: !Ref NatGateway
+  PrivateRouteTable3Association:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      RouteTableId: !Ref PrivateRouteTable3
+      SubnetId: !Ref PrivateSubnet3
+
+  # Endpoints
+  # If a resource needs to access DynamoDB or S3 this allows a resources in the private subnet
+  # to talk to DynamoDB or S3 directly without needing to go via the NAT gateway. This reduces
+  # the amount of bandwidth through the gateway, meaning that the gateway is free to serve
+  # your other traffic.
+  DynamoDBEndpoint:
+    Type: AWS::EC2::VPCEndpoint
+    Properties:
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Action: "*"
+            Principal: "*"
+            Resource: "*"
+      RouteTableIds:
+        - !Ref 'PrivateRouteTable1'
+        - !Ref 'PrivateRouteTable2'
+        - !Ref 'PrivateRouteTable3'
+      ServiceName: 
+        !Join 
+          - ''
+          - - 'com.amazonaws.'
+            - !Ref "AWS::Region"
+            -  '.dynamodb'
+      VpcId: !Ref 'VPC'
+  S3Endpoint:
+    Type: AWS::EC2::VPCEndpoint
+    Properties:
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Action: "*"
+            Principal: "*"
+            Resource: "*"
+      RouteTableIds:
+        - !Ref 'PrivateRouteTable1'
+        - !Ref 'PrivateRouteTable2'
+        - !Ref 'PrivateRouteTable3'
+      ServiceName: !Join [ "", [ "com.amazonaws.", { "Ref": "AWS::Region" }, ".s3" ] ]
+      VpcId: !Ref 'VPC'
+
+  RDSCluster:
+    Type: 'AWS::RDS::DBCluster'
+    Properties:
+      DatabaseName:
+        !Join [ '', [ !Join [ '', !Split [ '-', !Ref Service ] ], !Ref Environment ] ]
+      DBClusterIdentifier:
+        !Sub "${Service}-${Environment}"
+      Engine: aurora-mysql
+      EngineMode: serverless
+      StorageEncrypted: true
+      DeletionProtection: false
+      DBSubnetGroupName: !Ref RDSSubnetGroup
+      VpcSecurityGroupIds: 
+        - !GetAtt VPC.DefaultSecurityGroup
+        - !Ref DatabaseSecurityGroup
+      MasterUsername: awsroot
+      MasterUserPassword: patientnow
+      ScalingConfiguration:
+        AutoPause: false
+        MinCapacity: 1
+        MaxCapacity: 32
+        SecondsUntilAutoPause: 1000
+      Tags:
+        - Key: Service
+          Value: !Ref Service
+        - Key: Environment
+          Value: !Ref Environment  
+  RDSSubnetGroup:
+    Type: "AWS::RDS::DBSubnetGroup"
+    Properties:
+      DBSubnetGroupDescription:
+        !Sub "${Service}-${Environment}"
+      DBSubnetGroupName:
+        !Sub "${Service}-${Environment}"
+      SubnetIds:
+        - !Ref PrivateSubnet1
+        - !Ref PrivateSubnet2
+        - !Ref PrivateSubnet3
+      Tags:
+        - Key: Service
+          Value: !Ref Service
+        - Key: Environment
+          Value: !Ref Environment
+
+  # tables
+  SyncInTable: 
+    Type: AWS::DynamoDB::Table
+    Properties: 
+      TableName: !Sub "${Service}-${Environment}-SyncIn"
+      BillingMode: "PAY_PER_REQUEST"
+      SSESpecification:
+        SSEEnabled: true
+      PointInTimeRecoverySpecification:
+        PointInTimeRecoveryEnabled: true
+      TimeToLiveSpecification:
+        Enabled: true
+        AttributeName: Ttl
+      AttributeDefinitions: 
+        - AttributeName: "Id"
+          AttributeType: "S"
+        - AttributeName: "CreatedOn"
+          AttributeType: "S"
+      KeySchema: 
+        - AttributeName: "Id"
+          KeyType: "HASH"
+        - AttributeName: "CreatedOn"
+          KeyType: "RANGE"
+      Tags:
+        - Key: Service
+          Value: !Ref Service
+        - Key: Environment
+          Value: !Ref Environment
+  SyncInLogTable: 
+    Type: AWS::DynamoDB::Table
+    Properties: 
+      TableName: !Sub "${Service}-${Environment}-SyncInLog"
+      BillingMode: "PAY_PER_REQUEST"
+      SSESpecification:
+        SSEEnabled: true
+      PointInTimeRecoverySpecification:
+        PointInTimeRecoveryEnabled: true
+      TimeToLiveSpecification:
+        Enabled: true
+        AttributeName: Ttl
+      AttributeDefinitions: 
+        - AttributeName: "Id"
+          AttributeType: "S"
+        - AttributeName: "CreatedOn"
+          AttributeType: "S"
+      KeySchema: 
+        - AttributeName: "Id"
+          KeyType: "HASH"
+        - AttributeName: "CreatedOn"
+          KeyType: "RANGE"
+      Tags:
+        - Key: Service
+          Value: !Ref Service
+        - Key: Environment
+          Value: !Ref Environment
+  SyncOutTable: 
+    Type: AWS::DynamoDB::Table
+    Properties: 
+      TableName: !Sub "${Service}-${Environment}-SyncOut"
+      BillingMode: "PAY_PER_REQUEST"
+      SSESpecification:
+        SSEEnabled: true
+      PointInTimeRecoverySpecification:
+        PointInTimeRecoveryEnabled: true
+      TimeToLiveSpecification:
+        Enabled: true
+        AttributeName: Ttl
+      AttributeDefinitions: 
+        - AttributeName: "Id"
+          AttributeType: "S"
+        - AttributeName: "CreatedOn"
+          AttributeType: "S"
+      KeySchema: 
+        - AttributeName: "Id"
+          KeyType: "HASH"
+        - AttributeName: "CreatedOn"
+          KeyType: "RANGE"
+      Tags:
+        - Key: Service
+          Value: !Ref Service
+        - Key: Environment
+          Value: !Ref Environment
+  SyncOutLogTable: 
+    Type: AWS::DynamoDB::Table
+    Properties: 
+      TableName: !Sub "${Service}-${Environment}-SyncOutLog"
+      BillingMode: "PAY_PER_REQUEST"
+      SSESpecification:
+        SSEEnabled: true
+      PointInTimeRecoverySpecification:
+        PointInTimeRecoveryEnabled: true
+      TimeToLiveSpecification:
+        Enabled: true
+        AttributeName: Ttl
+      AttributeDefinitions: 
+        - AttributeName: "Id"
+          AttributeType: "S"
+        - AttributeName: "CreatedOn"
+          AttributeType: "S"
+      KeySchema: 
+        - AttributeName: "Id"
+          KeyType: "HASH"
+        - AttributeName: "CreatedOn"
+          KeyType: "RANGE"
+      Tags:
+        - Key: Service
+          Value: !Ref Service
+        - Key: Environment
+          Value: !Ref Environment
+
+  # queues
+  SyncInQueue:
+    Type: AWS::SQS::Queue
+    Properties:
+      QueueName: !Sub "${Service}-${Environment}-SyncIn"
+      DelaySeconds: 0
+      RedrivePolicy:
+        deadLetterTargetArn: !GetAtt SyncInErrorQueue.Arn
+        maxReceiveCount: 3
+      Tags:
+        - Key: Service
+          Value: !Ref Service
+        - Key: Environment
+          Value: !Ref Environment
+  SyncInErrorQueue:
+    Type: AWS::SQS::Queue
+    Properties:
+      QueueName: !Sub "${Service}-${Environment}-SyncIn-Errors"
+      Tags:
+        - Key: Service
+          Value: !Ref Service
+        - Key: Environment
+          Value: !Ref Environment
+  SyncOutQueue:
+    Type: AWS::SQS::Queue
+    Properties:
+      QueueName: !Sub "${Service}-${Environment}-SyncOut"
+      DelaySeconds: 0
+      RedrivePolicy:
+        deadLetterTargetArn: !GetAtt SyncOutErrorQueue.Arn
+        maxReceiveCount: 3
+      Tags:
+        - Key: Service
+          Value: !Ref Service
+        - Key: Environment
+          Value: !Ref Environment
+  SyncOutErrorQueue:
+    Type: AWS::SQS::Queue
+    Properties:
+      QueueName: !Sub "${Service}-${Environment}-SyncOut-Errors"
+      Tags:
+        - Key: Service
+          Value: !Ref Service
+        - Key: Environment
+          Value: !Ref Environment
+
+  # CPU resources
+  Cluster:
+    Type: AWS::ECS::Cluster
+    Properties:
+      ClusterName:
+        !Sub "${Service}-${Environment}"
+      Tags:
+        - Key: Service
+          Value: !Ref Service
+        - Key: Environment
+          Value: !Ref Environment
+
+  TaskDefinition:
+    Type: AWS::ECS::TaskDefinition
+    DependsOn: LogGroup
+    Properties:
+      Family:
+        !Sub "${Service}-${Environment}-TaskDefinition"
+      NetworkMode: awsvpc
+      RequiresCompatibilities:
+        - FARGATE
+      # 256 (.25 vCPU) - Available memory values: 0.5GB, 1GB, 2GB
+      # 512 (.5 vCPU) - Available memory values: 1GB, 2GB, 3GB, 4GB
+      # 1024 (1 vCPU) - Available memory values: 2GB, 3GB, 4GB, 5GB, 6GB, 7GB, 8GB
+      # 2048 (2 vCPU) - Available memory values: Between 4GB and 16GB in 1GB increments
+      # 4096 (4 vCPU) - Available memory values: Between 8GB and 30GB in 1GB increments
+      Cpu: 1024
+      # 0.5GB, 1GB, 2GB - Available cpu values: 256 (.25 vCPU)
+      # 1GB, 2GB, 3GB, 4GB - Available cpu values: 512 (.5 vCPU)
+      # 2GB, 3GB, 4GB, 5GB, 6GB, 7GB, 8GB - Available cpu values: 1024 (1 vCPU)
+      # Between 4GB and 16GB in 1GB increments - Available cpu values: 2048 (2 vCPU)
+      # Between 8GB and 30GB in 1GB increments - Available cpu values: 4096 (4 vCPU)
+      Memory: 2GB
+      ExecutionRoleArn: !Ref ExecutionRole
+      TaskRoleArn: !Ref TaskRole
+      ContainerDefinitions:
+        - Name:
+            !Sub "${Service}-${Environment}"
+          Image:
+            !Sub "710563682326.dkr.ecr.us-east-2.amazonaws.com/${Service}:${ImageTag}"
+          Environment: 
+            - Name: Environment
+              Value: !Ref Environment
+          PortMappings:
+            - ContainerPort: 80
+          LogConfiguration:
+            LogDriver: awslogs
+            Options:
+              awslogs-region: !Ref AWS::Region
+              awslogs-group: !Ref LogGroup
+              awslogs-stream-prefix: ecs
+  LogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName:
+        !Sub "/ecs/${Service}-${Environment}-TaskDefinition"
+  
+  ECSService:
+    Type: AWS::ECS::Service
+    DependsOn: ListenerHTTPS
+    Properties: 
+      ServiceName:
+        !Sub "${Service}-${Environment}"
+      Cluster: !Ref Cluster
+      TaskDefinition: !Ref TaskDefinition
+      DeploymentConfiguration:
+        MinimumHealthyPercent: 100
+        MaximumPercent: 200
+      DesiredCount: 2
+      # This may need to be adjusted if the container takes a while to start up
+      HealthCheckGracePeriodSeconds: 30
+      LaunchType: FARGATE
+      NetworkConfiguration: 
+        AwsvpcConfiguration:
+          # change to DISABLED if you're using private subnets that have access to a NAT gateway
+          AssignPublicIp: ENABLED
+          Subnets:
+            - !Ref PrivateSubnet1
+            - !Ref PrivateSubnet2
+            - !Ref PrivateSubnet3
+          SecurityGroups:
+            - !Ref ContainerSecurityGroup
+      LoadBalancers:
+        - ContainerName:
+            !Sub "${Service}-${Environment}"
+          ContainerPort: 80
+          TargetGroupArn: !Ref TargetGroup
+  TargetGroup:
+    Type: AWS::ElasticLoadBalancingV2::TargetGroup
+    Properties:
+      HealthCheckIntervalSeconds: 10
+      HealthCheckPath: /api/health
+      HealthCheckTimeoutSeconds: 5
+      UnhealthyThresholdCount: 2
+      HealthyThresholdCount: 2
+      Name:
+        !Sub "${Service}-${Environment}-TargetG"
+      Port: 80
+      Protocol: HTTP
+      TargetGroupAttributes:
+        - Key: deregistration_delay.timeout_seconds
+          Value: 60 # default is 300
+      TargetType: ip
+      VpcId: !Ref VPC
+  ListenerHTTPS:
+    Type: AWS::ElasticLoadBalancingV2::Listener
+    Properties:
+      DefaultActions:
+        - TargetGroupArn: !Ref TargetGroup
+          Type: forward
+      LoadBalancerArn: !Ref LoadBalancer
+      Port: 443
+      Protocol: HTTPS
+      Certificates:
+        - CertificateArn: certification
+  LoadBalancer:
+    Type: AWS::ElasticLoadBalancingV2::LoadBalancer
+    Properties:
+      LoadBalancerAttributes:
+        # this is the default, but is specified here in case it needs to be changed
+        - Key: idle_timeout.timeout_seconds
+          Value: 60
+      Name: 
+        !Sub "${Service}-${Environment}-LoadBal"
+      # "internal" is also an option
+      Scheme: internet-facing
+      SecurityGroups:
+        - !Ref LoadBalancerSecurityGroup
+      Subnets:
+        - !Ref PublicSubnet1
+        - !Ref PublicSubnet2
+        - !Ref PublicSubnet3
+  AutoScalingTarget:
+    Type: AWS::ApplicationAutoScaling::ScalableTarget
+    Properties:
+      MinCapacity: 1
+      MaxCapacity: 4
+      ResourceId: 
+        !Sub "service/${Cluster}/${ECSService.Name}"
+      ScalableDimension: ecs:service:DesiredCount
+      ServiceNamespace: ecs
+      # "The Amazon Resource Name (ARN) of an AWS Identity and Access Management (IAM) role that allows Application Auto Scaling to modify your scalable target."
+      RoleARN: !GetAtt AutoScalingRole.Arn
+  AutoScalingPolicy:
+    Type: AWS::ApplicationAutoScaling::ScalingPolicy
+    Properties:
+      PolicyName:
+        !Sub "${Service}-${Environment}-AutoScalingPolicy"
+      PolicyType: TargetTrackingScaling
+      ScalingTargetId: !Ref AutoScalingTarget
+      TargetTrackingScalingPolicyConfiguration:
+        PredefinedMetricSpecification:
+          PredefinedMetricType: ECSServiceAverageCPUUtilization
+        ScaleInCooldown: 10
+        ScaleOutCooldown: 10
+        # Keep things at or lower than 50% CPU utilization, for example
+        TargetValue: 50  
+  DNSRecord:
+    Type: AWS::Route53::RecordSet
+    Properties:
+      HostedZoneName: patientnow.net.
+      Name:
+        !Sub "${Service}-${Environment}.patientnow.net."
+      Type: A
+      AliasTarget:
+        DNSName: !GetAtt LoadBalancer.DNSName
+        HostedZoneId: !GetAtt LoadBalancer.CanonicalHostedZoneID
+  
+  ContainerSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription:
+        !Sub "${Service}-${Environment}-ContainerSecurityGroup"
+      VpcId: !Ref VPC
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 80
+          ToPort: 80
+          SourceSecurityGroupId: !Ref LoadBalancerSecurityGroup
+  LoadBalancerSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription:
+        !Sub "${Service}-${Environment}-LoadBalancerSecurityGroup"
+      VpcId: !Ref VPC
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 443
+          ToPort: 443
+          CidrIp: 0.0.0.0/0
+  DatabaseSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription:
+        !Sub "${Service}-${Environment}-DatabaseSecurityGroup"
+      VpcId: !Ref VPC
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 3306
+          ToPort: 3306
+          SourceSecurityGroupId: !Ref ContainerSecurityGroup
+
+  ExecutionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName:
+        !Sub "${Service}-${Environment}-ExecutionRole"
+      AssumeRolePolicyDocument:
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: ecs-tasks.amazonaws.com
+            Action: 'sts:AssumeRole'
+      ManagedPolicyArns:
+        - 'arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy'
+  TaskRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName:
+        !Sub "${Service}-${Environment}-TaskRole"
+      AssumeRolePolicyDocument:
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: 
+                - ecs-tasks.amazonaws.com
+                - lambda.amazonaws.com
+            Action: 'sts:AssumeRole'
+      ManagedPolicyArns:
+        - "arn:aws:iam::aws:policy/AWSLambdaExecute"
+        - "arn:aws:iam::aws:policy/service-role/AWSLambdaVPCAccessExecutionRole"
+        - "arn:aws:iam::aws:policy/service-role/AWSLambdaSQSQueueExecutionRole"
+      Policies:
+        - PolicyName: AppPolicy
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                  - "s3:ListAllMyBuckets"
+                Resource:
+                  - "arn:aws:s3:::*"
+              - Effect: Allow
+                Action:
+                  - "s3:ListBucket"
+                  - "s3:GetBucketLocation"
+                Resource:
+                  - !Sub "arn:aws:s3:::${Service}-${Environment}"
+              - Effect: Allow
+                Action:
+                  - "s3:PutObject"
+                  - "s3:PutObjectAcl"
+                  - "s3:GetObject"
+                  - "s3:GetObjectAcl"
+                  - "s3:DeleteObject"
+                Resource:
+                  - !Sub "arn:aws:s3:::${Service}-${Environment}/*"
+              - Effect: Allow
+                Action:
+                  - "ssm:DescribeParameters"
+                Resource:
+                  - "*"
+              - Effect: Allow
+                Action:
+                  - "ssm:GetParameters"
+                  - "ssm:GetParametersByPath"
+                Resource:
+                  - !Sub "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${Service}/${Environment}/*"
+              - Effect: Allow
+                Action:
+                  - "dynamodb:GetItem"
+                  - "dynamodb:BatchGetItem"
+                  - "dynamodb:Query"
+                  - "dynamodb:PutItem"
+                  - "dynamodb:UpdateItem"
+                  - "dynamodb:DeleteItem"
+                  - "dynamodb:BatchWriteItem"
+                Resource:
+                  - !Sub "arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${Service}-${Environment}-*"
+              - Effect: Allow
+                Action:
+                  - "cognito-idp:*"
+                Resource: !Sub 
+                  - "arn:aws:cognito-idp:${AWS::Region}:${AWS::AccountId}:userpool/${userpool}"
+                  - { userpool: !FindInMap ['Default', { "Ref": "Environment" }, 'Userpool'] }
+              - Effect: "Allow"
+                Action:
+                  - "sqs:*"
+                Resource:
+                  - !Sub arn:aws:sqs:${AWS::Region}:${AWS::AccountId}:${Service}-${Environment}-*
+
+  AutoScalingRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: 
+        !Sub "${Service}-${Environment}-AutoScalingRole"
+      AssumeRolePolicyDocument:
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: ecs-tasks.amazonaws.com
+            Action: 'sts:AssumeRole'
+      ManagedPolicyArns:
+        - 'arn:aws:iam::aws:policy/service-role/AmazonEC2ContainerServiceAutoscaleRole'
+          

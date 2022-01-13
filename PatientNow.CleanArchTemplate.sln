@@ -1,0 +1,82 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.1.31911.260
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "PatientNow.CleanArchTemplate.Core", "src\PatientNow.CleanArchTemplate.Core\PatientNow.CleanArchTemplate.Core.csproj", "{4BD9560D-B7E8-4BD4-A519-0437AA880319}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "PatientNow.CleanArchTemplate.Infrastructure", "src\PatientNow.CleanArchTemplate.Infrastructure\PatientNow.CleanArchTemplate.Infrastructure.csproj", "{E1AAA239-E650-4298-8FE4-1E6EBC4ED6C4}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "PatientNow.CleanArchTemplate.WebApi", "src\PatientNow.CleanArchTemplate.WebApi\PatientNow.CleanArchTemplate.WebApi.csproj", "{AC8E7D32-6E78-4D5B-BB94-E0C2F1CBF20B}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "PatientNow.CleanArchTemplate.SharedKernel", "src\PatientNow.CleanArchTemplate.SharedKernel\PatientNow.CleanArchTemplate.SharedKernel.csproj", "{1DB53906-0C6F-4C0A-A9E4-32820F009E8E}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "PatientNow.CleanArchTemplate.Authentication", "src\PatientNow.CleanArchTemplate.Authentication\PatientNow.CleanArchTemplate.Authentication.csproj", "{C7B98363-0D87-4FF0-8D96-77710A31DDE2}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Deploy", "Deploy", "{6A403BB3-DC9B-4FB9-8786-5F30ED4E8BFF}"
+	ProjectSection(SolutionItems) = preProject
+		buildspec.yml = buildspec.yml
+		Dockerfile = Dockerfile
+		template.yml = template.yml
+		template_pipelines.yml = template_pipelines.yml
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "tests", "tests", "{25DE9AE0-D2C6-44B4-8B2E-349229768EE8}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "PatientNow.CleanArchTemplate.Tests.UnitTests", "tests\PatientNow.CleanArchTemplate.Tests.UnitTests\PatientNow.CleanArchTemplate.Tests.UnitTests.csproj", "{2192B38F-9FB4-4A57-AC37-488D31C6539A}"
+EndProject
+Project("{E53339B2-1760-4266-BCC7-CA923CBCF16C}") = "docker-compose", "docker-compose.dcproj", "{524B77BF-4D99-451F-8F53-9262F3E58863}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "PatientNow.CleanArchTemplate.Tests.Integration", "tests\PatientNow.CleanArchTemplate.Tests.Integration\PatientNow.CleanArchTemplate.Tests.Integration.csproj", "{B28E354B-F18A-4734-9534-0937CA6259BD}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{4BD9560D-B7E8-4BD4-A519-0437AA880319}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{4BD9560D-B7E8-4BD4-A519-0437AA880319}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{4BD9560D-B7E8-4BD4-A519-0437AA880319}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{4BD9560D-B7E8-4BD4-A519-0437AA880319}.Release|Any CPU.Build.0 = Release|Any CPU
+		{E1AAA239-E650-4298-8FE4-1E6EBC4ED6C4}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{E1AAA239-E650-4298-8FE4-1E6EBC4ED6C4}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{E1AAA239-E650-4298-8FE4-1E6EBC4ED6C4}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{E1AAA239-E650-4298-8FE4-1E6EBC4ED6C4}.Release|Any CPU.Build.0 = Release|Any CPU
+		{AC8E7D32-6E78-4D5B-BB94-E0C2F1CBF20B}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{AC8E7D32-6E78-4D5B-BB94-E0C2F1CBF20B}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{AC8E7D32-6E78-4D5B-BB94-E0C2F1CBF20B}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{AC8E7D32-6E78-4D5B-BB94-E0C2F1CBF20B}.Release|Any CPU.Build.0 = Release|Any CPU
+		{1DB53906-0C6F-4C0A-A9E4-32820F009E8E}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{1DB53906-0C6F-4C0A-A9E4-32820F009E8E}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{1DB53906-0C6F-4C0A-A9E4-32820F009E8E}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{1DB53906-0C6F-4C0A-A9E4-32820F009E8E}.Release|Any CPU.Build.0 = Release|Any CPU
+		{C7B98363-0D87-4FF0-8D96-77710A31DDE2}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{C7B98363-0D87-4FF0-8D96-77710A31DDE2}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{C7B98363-0D87-4FF0-8D96-77710A31DDE2}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{C7B98363-0D87-4FF0-8D96-77710A31DDE2}.Release|Any CPU.Build.0 = Release|Any CPU
+		{2192B38F-9FB4-4A57-AC37-488D31C6539A}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{2192B38F-9FB4-4A57-AC37-488D31C6539A}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{2192B38F-9FB4-4A57-AC37-488D31C6539A}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{2192B38F-9FB4-4A57-AC37-488D31C6539A}.Release|Any CPU.Build.0 = Release|Any CPU
+		{524B77BF-4D99-451F-8F53-9262F3E58863}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{524B77BF-4D99-451F-8F53-9262F3E58863}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{524B77BF-4D99-451F-8F53-9262F3E58863}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{524B77BF-4D99-451F-8F53-9262F3E58863}.Release|Any CPU.Build.0 = Release|Any CPU
+		{B28E354B-F18A-4734-9534-0937CA6259BD}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{B28E354B-F18A-4734-9534-0937CA6259BD}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{B28E354B-F18A-4734-9534-0937CA6259BD}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{B28E354B-F18A-4734-9534-0937CA6259BD}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{2192B38F-9FB4-4A57-AC37-488D31C6539A} = {25DE9AE0-D2C6-44B4-8B2E-349229768EE8}
+		{524B77BF-4D99-451F-8F53-9262F3E58863} = {6A403BB3-DC9B-4FB9-8786-5F30ED4E8BFF}
+		{B28E354B-F18A-4734-9534-0937CA6259BD} = {25DE9AE0-D2C6-44B4-8B2E-349229768EE8}
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {44FF1A67-3240-45E7-A0C3-6E86D7DEB2EC}
+	EndGlobalSection
+EndGlobal
